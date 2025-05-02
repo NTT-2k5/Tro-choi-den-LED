@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Trò chơi đèn LED - XP</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 10px;
+    }
+    .container {
+      text-align: center;
+    }
+    .board {
+      display: inline-block;
+      vertical-align: top;
+      margin: 20px;
+    }
+    table {
+      border-collapse: collapse;
+      margin: 0 auto;
+    }
+    td {
+      width: 40px;
+      height: 40px;
+      border: 1px solid #888;
+      text-align: center;
+      vertical-align: middle;
+      background-color: white;
+    }
+    .on {
+      background-color: yellow;
+    }
+    .off {
+      background-color: white;
+    }
+    .buttons {
+      margin-top: 20px;
+    }
+    .button-row {
+      margin-bottom: 5px;
+    }
+    button {
+      margin: 5px;
+      padding: 6px 12px;
+      font-size: 14px;
+    }
+    .bold-button {
+      font-weight: bold;
+    }
+    #status {
+      margin-top: 15px;
+      font-size: 17px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Trò chơi đèn LED</h1>
+
+  <div class="container">
+    <div class="board">
+      <h2>Bảng của bạn</h2>
+      <table id="grid"></table>
+    </div>
+
+    <div class="board">
+      <h2>Mục tiêu</h2>
+      <table id="targetGrid"></table>
+    </div>
+  </div>
+
+  <div class="buttons">
+    <div id="switches"></div>
+
+    <div class="button-row">
+      <button onclick="retryGame()" class="bold-button">Chơi lại</button>
+      <button onclick="newGame(3)" class="bold-button">Màn mới (3x3)</button>
+      <button onclick="newGame(4)" class="bold-button">Màn mới (4x4)</button>
+      <button onclick="newGame(5)" class="bold-button">Màn mới (5x5)</button>
+    </div>
+  </div>
+
+  <div id="status">Hãy bấm <b>tất cả</b> các công tắc đèn đã cho để <br/> tạo ra được bảng đèn LED đúng như mục tiêu!</div>
+
+<script>
+  var size = 4;
+  var grid = [];
+  var targetGrid = [];
+  var buttonIds = [];
+
+  function createTable(id, storage) {
+    var table = document.getElementById(id);
+    table.innerHTML = "";
+    for (var i = 0; i < size; i++) {
+      var row = table.insertRow();
+      storage[i] = [];
+      for (var j = 0; j < size; j++) {
+        var cell = row.insertCell();
+        cell.className = "off";
+        storage[i][j] = cell;
+      }
+    }
+  }
+
+  function createTarget() {
+    createTable("targetGrid", targetGrid);
+    var ops = [];
+    for (var i = 0; i < size; i++) ops.push({type: "row", index: i});
+    for (var i = 0; i < size; i++) ops.push({type: "col", index: i});
+    shuffleArray(ops);
+
+    for (var k = 0; k < ops.length; k++) {
+      var op = ops[k];
+      if (op.type == "row") {
+        for (var j = 0; j < size; j++) {
+          targetGrid[op.index][j].className = "on";
+        }
+      } else {
+        for (var i = 0; i < size; i++) {
+          targetGrid[i][op.index].className = "off";
+        }
+      }
+    }
+  }
+
+  function shuffleArray(arr) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var temp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = temp;
+    }
+  }
+
+  function createSwitches() {
+    var switchesDiv = document.getElementById("switches");
+    switchesDiv.innerHTML = "";
+    buttonIds = [];
+
+    var rowDiv = document.createElement("div");
+    rowDiv.className = "button-row";
+    for (var i = 0; i < size; i++) {
+      var btn = document.createElement("button");
+      btn.id = "row" + i;
+      btn.innerHTML = "Bật hàng " + (i+1);
+      btn.onclick = (function(index){
+        return function(){ toggleRow(index); };
+      })(i);
+      rowDiv.appendChild(btn);
+      buttonIds.push("row" + i);
+    }
+    switchesDiv.appendChild(rowDiv);
+
+    var colDiv = document.createElement("div");
+    colDiv.className = "button-row";
+    for (var i = 0; i < size; i++) {
+      var btn = document.createElement("button");
+      btn.id = "col" + i;
+      btn.innerHTML = "Tắt cột " + (i+1);
+      btn.onclick = (function(index){
+        return function(){ toggleCol(index); };
+      })(i);
+      colDiv.appendChild(btn);
+      buttonIds.push("col" + i);
+    }
+    switchesDiv.appendChild(colDiv);
+  }
+
+  function toggleRow(row) {
+    for (var j = 0; j < size; j++) {
+      grid[row][j].className = "on";
+    }
+    document.getElementById("row" + row).disabled = true;
+    checkWin();
+  }
+
+  function toggleCol(col) {
+    for (var i = 0; i < size; i++) {
+      grid[i][col].className = "off";
+    }
+    document.getElementById("col" + col).disabled = true;
+    checkWin();
+  }
+
+  function retryGame() {
+    createTable("grid", grid);
+    enableAllButtons();
+    document.getElementById("status").innerHTML = "Hãy bấm <b>tất cả</b> các công tắc đèn đã cho để <br/> tạo ra được bảng đèn LED đúng như mục tiêu!";
+  }
+
+  function newGame(newSize) {
+    size = newSize;
+    createTable("grid", grid);
+    createTarget();
+    createSwitches();
+    document.getElementById("status").innerHTML = "Hãy bấm <b>tất cả</b> các công tắc đèn đã cho để <br/> tạo ra được bảng đèn LED đúng như mục tiêu!";
+  }
+
+  function enableAllButtons() {
+    for (var i = 0; i < buttonIds.length; i++) {
+      document.getElementById(buttonIds[i]).disabled = false;
+    }
+  }
+
+  function checkWin() {
+    if (!allButtonsPressed()) return;
+    for (var i = 0; i < size; i++) {
+      for (var j = 0; j < size; j++) {
+        if (grid[i][j].className != targetGrid[i][j].className) return;
+      }
+    }
+    document.getElementById("status").innerHTML = "<b>Bạn đã thắng!</b>";
+  }
+
+  function allButtonsPressed() {
+    for (var i = 0; i < buttonIds.length; i++) {
+      if (!document.getElementById(buttonIds[i]).disabled) return false;
+    }
+    return true;
+  }
+
+  newGame(4);
+</script>
+
+</body>
+</html>
