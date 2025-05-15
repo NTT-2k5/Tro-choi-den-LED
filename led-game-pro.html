@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trò chơi đèn LED - XP</title>
+  <style>
+    :root {
+      --primary-color: #4a6fa5;
+      --secondary-color: #166088;
+      --accent-color: #4fc3f7;
+      --background-color: #f5f7fa;
+      --text-color: #333;
+      --light-on: #ffeb3b;
+      --light-glow: rgba(255, 235, 59, 0.7);
+      --grid-border: #bbbbbb;
+      --button-hover: #2c7cb0;
+      --success-color: #4caf50;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Segoe UI', 'Roboto', sans-serif;
+      background-color: var(--background-color);
+      color: var(--text-color);
+      line-height: 1.6;
+      padding: 15px;
+      max-width: 1200px;
+      margin: 0 auto;
+      transition: background-color 0.3s ease;
+    }
+    
+    h1 {
+      color: var(--primary-color);
+      text-align: center;
+      margin: 10px 0;
+      font-size: 2.2rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    h2 {
+      color: var(--secondary-color);
+      font-size: 1.5rem;
+      margin-bottom: 10px;
+    }
+    
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      margin: 20px 0;
+    }
+    
+    .board {
+      background-color: white;
+      border-radius: 10px;
+      padding: 15px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+    }
+    
+    .board:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+    
+    table {
+      border-collapse: separate;
+      border-spacing: 3px;
+      margin: 0 auto;
+    }
+    
+    td {
+      width: 45px;
+      height: 45px;
+      border-radius: 5px;
+      text-align: center;
+      vertical-align: middle;
+      border: 2px solid var(--grid-border);
+      transition: all 0.3s ease;
+      box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
+      position: relative;
+    }
+    
+    @media (max-width: 768px) {
+      td {
+        width: 40px;
+        height: 40px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      td {
+        width: 30px;
+        height: 30px;
+      }
+    }
+    
+    .on {
+      background-color: var(--light-on);
+      box-shadow: 0 0 15px var(--light-glow), inset 0 0 10px rgba(255,255,255,0.8);
+      transform: scale(1.05);
+      z-index: 1;
+    }
+    
+    .off {
+      background-color: white;
+    }
+    
+    .buttons {
+      margin: 20px auto;
+      text-align: center;
+    }
+    
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 10px;
+      gap: 8px;
+    }
+    
+    button {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 5px;
+      padding: 10px 15px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      min-width: 120px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    @media (max-width: 768px) {
+      button {
+        padding: 8px 12px;
+        min-width: auto;
+        font-size: 0.9rem;
+      }
+    }
+    
+    button:hover {
+      background-color: var(--button-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    button:active {
+      transform: translateY(1px);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+      opacity: 0.7;
+    }
+    
+    button::after {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: -100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: 0.5s;
+    }
+    
+    button:not(:disabled):hover::after {
+      left: 100%;
+    }
+    
+    .bold-button {
+      font-weight: bold;
+      background-color: var(--secondary-color);
+      min-width: 150px;
+    }
+    
+    #status {
+      margin: 20px auto;
+      font-size: 1.2rem;
+      background-color: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      max-width: 500px;
+      line-height: 1.5;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+    
+    .win-animation {
+      animation: win-pulse 2s infinite;
+      background-color: var(--success-color);
+      color: black;
+      font-weight: bold;
+    }
+    
+    @keyframes win-pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    
+    /* Control indicator dots */
+    .control-status {
+      display: flex;
+      justify-content: center;
+      margin: 10px 0;
+      gap: 5px;
+    }
+    
+    .control-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #ddd;
+      margin: 0 2px;
+      transition: background-color 0.3s ease;
+    }
+    
+    .control-dot.active {
+      background-color: var(--accent-color);
+    }
+    
+    /* Instructions */
+    .instructions {
+      text-align: center;
+      margin: 15px auto;
+      max-width: 600px;
+      background-color: rgba(255, 255, 255, 0.7);
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 0.95rem;
+    }
+    
+    /* For the ripple effect on buttons when pressed */
+    .ripple {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      transform: scale(0);
+      animation: ripple 0.6s linear;
+      pointer-events: none;
+    }
+    
+    @keyframes ripple {
+      to {
+        transform: scale(4);
+        opacity: 0;
+      }
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 1.8rem;
+      }
+      
+      h2 {
+        font-size: 1.3rem;
+      }
+      
+      #status {
+        font-size: 1.1rem;
+        padding: 10px;
+      }
+      
+      .board {
+        padding: 10px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      h1 {
+        font-size: 1.5rem;
+      }
+      
+      h2 {
+        font-size: 1.1rem;
+      }
+      
+      #status {
+        font-size: 1rem;
+      }
+      
+      .buttons {
+        margin: 10px auto;
+      }
+      
+      .button-row button {
+        padding: 8px 10px;
+        font-size: 0.85rem;
+        margin: 3px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Trò chơi đèn LED</h1>
+  
+  <div class="container">
+    <div class="board">
+      <h2>Bảng của bạn</h2>
+      <table id="grid"></table>
+    </div>
+
+    <div class="board">
+      <h2>Mục tiêu</h2>
+      <table id="targetGrid"></table>
+    </div>
+  </div>
+
+  <div id="status">Hãy bấm <b>tất cả</b> các công tắc đèn để tạo ra bảng đèn đúng như mục tiêu!</div>
+
+  <div class="control-status" id="controlStatus"></div>
+
+  <div class="buttons">
+    <div id="switches"></div>
+
+    <div class="button-row">
+      <button onclick="retryGame()" class="bold-button">Chơi lại</button>
+      <button onclick="newGame(3)" class="bold-button">Màn mới (3x3)</button>
+      <button onclick="newGame(4)" class="bold-button">Màn mới (4x4)</button>
+      <button onclick="newGame(5)" class="bold-button">Màn mới (5x5)</button>
+    </div>
+  </div>
+
+<script>
+  var size = 4;
+  var grid = [];
+  var targetGrid = [];
+  var buttonIds = [];
+
+  function createTable(id, storage) {
+    var table = document.getElementById(id);
+    table.innerHTML = "";
+    for (var i = 0; i < size; i++) {
+      var row = table.insertRow();
+      storage[i] = [];
+      for (var j = 0; j < size; j++) {
+        var cell = row.insertCell();
+        cell.className = "off";
+        storage[i][j] = cell;
+      }
+    }
+  }
+
+function createTarget() {
+  createTable("targetGrid", targetGrid); // Khởi tạo các ô của targetGrid, ban đầu tất cả là 'off'
+
+  // Logic hiện tại để xác định các thao tác (ops) và xáo trộn chúng
+  var ops = [];
+  for (var i = 0; i < size; i++) ops.push({type: "row", index: i});
+  for (var i = 0; i < size; i++) ops.push({type: "col", index: i});
+  shuffleArray(ops);
+
+  // 1. Tính toán trạng thái cuối cùng (finalPattern) cho mỗi ô dựa trên 'ops'
+  //    Lưu trạng thái này vào một mảng tạm thời.
+  let finalPattern = [];
+  for (let r = 0; r < size; r++) {
+    finalPattern[r] = [];
+    for (let c = 0; c < size; c++) {
+      // Ban đầu, tất cả các ô trong finalPattern sẽ là 'off',
+      // giống như trạng thái của các ô trong targetGrid sau khi gọi createTable.
+      finalPattern[r][c] = 'off';
+    }
+  }
+
+  // Áp dụng các thao tác trong 'ops' để xác định finalPattern.
+  // Logic này giả định rằng thao tác cuối cùng ảnh hưởng đến một ô sẽ quyết định trạng thái của nó.
+  for (var k = 0; k < ops.length; k++) {
+    var op = ops[k];
+    if (op.type == "row") {
+      for (var j = 0; j < size; j++) {
+        finalPattern[op.index][j] = "on"; // Thao tác hàng sẽ bật đèn
+      }
+    } else { // op.type == "col"
+      for (var i = 0; i < size; i++) {
+        finalPattern[i][op.index] = "off"; // Thao tác cột sẽ tắt đèn
+      }
+    }
+  }
+
+  // 2. Áp dụng hiệu ứng cho các ô trong targetGrid để khớp với finalPattern
+  for (let r_idx = 0; r_idx < size; r_idx++) {
+    for (let c_idx = 0; c_idx < size; c_idx++) {
+      const cell = targetGrid[r_idx][c_idx]; // Ô DOM thực tế
+      const intendedFinalClass = finalPattern[r_idx][c_idx]; // Trạng thái 'on' hoặc 'off' cuối cùng mong muốn
+
+      // Tạo độ trễ khác nhau cho mỗi ô để hiệu ứng xuất hiện tuần tự
+      const baseDelay = (r_idx * size + c_idx) * 15; // Tăng độ trễ để dễ quan sát hơn
+
+      if (intendedFinalClass === "on") {
+        // Nếu ô đích là 'on' (ô hiện tại đang là 'off' từ createTable)
+        // Hiệu ứng tương tự toggleRow: ô chuyển từ 'off' sang 'on'.
+        // CSS transition trên 'td' sẽ xử lý hiệu ứng hình ảnh.
+        setTimeout(() => {
+          cell.className = "on";
+        }, baseDelay);
+      } else { // intendedFinalClass === "off"
+        // Nếu ô đích là 'off' (ô hiện tại đang là 'off' từ createTable)
+        // Hiệu ứng tương tự toggleCol: ô sẽ chớp 'on' một lát rồi chuyển sang 'off'.
+        setTimeout(() => {
+          cell.className = "on"; // Chớp 'on'
+          setTimeout(() => {
+            cell.className = "off"; // Sau đó chuyển về 'off'
+          }, 50); // Thời gian chớp ngắn (50ms)
+        }, baseDelay);
+      }
+    }
+  }
+}
+
+  function shuffleArray(arr) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var temp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = temp;
+    }
+  }
+
+  function createSwitches() {
+    var switchesDiv = document.getElementById("switches");
+    switchesDiv.innerHTML = "";
+    buttonIds = [];
+
+    var rowDiv = document.createElement("div");
+    rowDiv.className = "button-row";
+    for (var i = 0; i < size; i++) {
+      var btn = document.createElement("button");
+      btn.id = "row" + i;
+      btn.innerHTML = "Bật hàng " + (i+1);
+      btn.onclick = (function(index){
+        return function(e){ 
+          createRippleEffect(e);
+          toggleRow(index); 
+        };
+      })(i);
+      rowDiv.appendChild(btn);
+      buttonIds.push("row" + i);
+    }
+    switchesDiv.appendChild(rowDiv);
+
+    var colDiv = document.createElement("div");
+    colDiv.className = "button-row";
+    for (var i = 0; i < size; i++) {
+      var btn = document.createElement("button");
+      btn.id = "col" + i;
+      btn.innerHTML = "Tắt cột " + (i+1);
+      btn.onclick = (function(index){
+        return function(e){ 
+          createRippleEffect(e);
+          toggleCol(index); 
+        };
+      })(i);
+      colDiv.appendChild(btn);
+      buttonIds.push("col" + i);
+    }
+    switchesDiv.appendChild(colDiv);
+    
+    updateControlStatus();
+  }
+  
+  function createRippleEffect(event) {
+    const button = event.currentTarget;
+    
+    const circle = document.createElement("span");
+    const diameter = Math.max(button.clientWidth, button.clientHeight);
+    const radius = diameter / 2;
+    
+    circle.style.width = circle.style.height = `${diameter}px`;
+    circle.style.left = `${event.clientX - button.offsetLeft - radius}px`;
+    circle.style.top = `${event.clientY - button.offsetTop - radius}px`;
+    circle.classList.add("ripple");
+    
+    const ripple = button.getElementsByClassName("ripple")[0];
+    if (ripple) {
+      ripple.remove();
+    }
+    
+    button.appendChild(circle);
+  }
+
+  function toggleRow(row) {
+    for (var j = 0; j < size; j++) {
+      grid[row][j].className = "off";
+      setTimeout((function(r, c) {
+        return function() {
+          grid[r][c].className = "on";
+        };
+      })(row, j), j * 50);
+    }
+    document.getElementById("row" + row).disabled = true;
+    updateControlStatus();
+    setTimeout(checkWin, size * 50);
+  }
+
+  function toggleCol(col) {
+    for (var i = 0; i < size; i++) {
+      grid[i][col].className = "on";
+      setTimeout((function(r, c) {
+        return function() {
+          grid[r][c].className = "off";
+        };
+      })(i, col), i * 50);
+    }
+    document.getElementById("col" + col).disabled = true;
+    updateControlStatus();
+    setTimeout(checkWin, size * 50);
+  }
+  
+  function updateControlStatus() {
+    const controlStatus = document.getElementById("controlStatus");
+    controlStatus.innerHTML = "";
+    
+    for (var i = 0; i < buttonIds.length; i++) {
+      var dot = document.createElement("div");
+      dot.className = "control-dot";
+      if (document.getElementById(buttonIds[i]).disabled) {
+        dot.classList.add("active");
+      }
+      controlStatus.appendChild(dot);
+    }
+  }
+
+  function retryGame() {
+    createTable("grid", grid);
+    enableAllButtons();
+    document.getElementById("status").innerHTML = "Hãy bấm <b>tất cả</b> các công tắc đèn để tạo ra bảng đèn đúng như mục tiêu!";
+    document.getElementById("status").className = "";
+    updateControlStatus();
+  }
+
+  function newGame(newSize) {
+    size = newSize;
+    createTable("grid", grid);
+    createTarget();
+    createSwitches();
+    document.getElementById("status").innerHTML = "Hãy bấm <b>tất cả</b> các công tắc đèn để tạo ra bảng đèn đúng như mục tiêu!";
+    document.getElementById("status").className = "";
+    updateControlStatus();
+  }
+
+  function enableAllButtons() {
+    for (var i = 0; i < buttonIds.length; i++) {
+      document.getElementById(buttonIds[i]).disabled = false;
+    }
+    updateControlStatus();
+  }
+
+  function checkWin() {
+    if (!allButtonsPressed()) return;
+    
+    let isWin = true;
+    for (var i = 0; i < size; i++) {
+      for (var j = 0; j < size; j++) {
+        if (grid[i][j].className != targetGrid[i][j].className) {
+          isWin = false;
+          break;
+        }
+      }
+      if (!isWin) break;
+    }
+    
+    if (isWin) {
+      const statusElem = document.getElementById("status");
+      statusElem.innerHTML = "<b>🎉 Chúc mừng! Bạn đã thắng! 🎉</b><br>Bấm \"Chơi lại\" hoặc chọn màn mới để tiếp tục.";
+      statusElem.className = "win-animation";
+      
+      // Add win animation to grid cells
+      setTimeout(() => {
+        for (var i = 0; i < size; i++) {
+          for (var j = 0; j < size; j++) {
+            if (grid[i][j].className === "on") {
+              setTimeout((function(r, c) {
+                return function() {
+                  grid[r][c].className = "off";
+                  setTimeout(function() {
+                    grid[r][c].className = "on";
+                  }, 200);
+                };
+              })(i, j), (i*size + j) * 50);
+            }
+          }
+        }
+      }, 500);
+    } else {
+      document.getElementById("status").innerHTML = "Không khớp với mục tiêu! Hãy thử lại.";
+      setTimeout(() => {
+        document.getElementById("status").innerHTML = "Hãy bấm <b>tất cả</b> các công tắc đèn để tạo ra bảng đèn đúng như mục tiêu!";
+      }, 2000);
+    }
+  }
+
+  function allButtonsPressed() {
+    for (var i = 0; i < buttonIds.length; i++) {
+      if (!document.getElementById(buttonIds[i]).disabled) return false;
+    }
+    return true;
+  }
+
+  // Check if mobile device
+  function isMobile() {
+    return window.innerWidth <= 768;
+  }
+  
+  // Adjust sizes for mobile
+  function adjustForMobile() {
+    if (isMobile() && size > 4) {
+      const cells = document.querySelectorAll('td');
+      cells.forEach(cell => {
+        cell.style.width = '25px';
+        cell.style.height = '25px';
+      });
+    }
+  }
+  
+  window.addEventListener('resize', adjustForMobile);
+  window.addEventListener('load', adjustForMobile);
+
+  // Initialize the game
+  newGame(4);
+</script>
+
+</body>
+</html>
