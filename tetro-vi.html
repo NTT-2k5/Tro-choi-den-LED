@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trò chơi xếp khối</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            background-color: #f0f0f0;
+            margin: 0;
+            min-height: 100vh;
+            /* New CSS to prevent text selection */
+            -webkit-user-select: none; /* Safari */
+            -ms-user-select: none; /* IE 10+ and Edge */
+            user-select: none; /* Standard syntax */
+        }
+
+        h1 {
+            color: #333;
+            margin: 10px 0;
+            font-size: 1.5em;
+            text-align: center;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .grid-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+			gap: 10px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 60px);
+            grid-template-rows: repeat(4, 60px);
+            gap: 2px;
+            background-color: #333;
+            padding: 10px;
+            border-radius: 8px;
+            position: relative;
+            touch-action: none;
+        }
+
+        .cell {
+            width: 60px;
+            height: 60px;
+            background-color: white;
+            border: 1px solid #ccc;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cell.target::after {
+            content: '×';
+            font-size: 50px;
+			color: red;
+            font-weight: bold;
+        }
+
+        .cell.black {
+            background-color: #555;
+        }
+        
+        .cell.target.black::after {
+            color: white;
+        }
+
+        .pieces-container {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            width: 100%;
+            align-items: center;
+        }
+
+        .pieces-container h3 {
+            margin: 0;
+            color: #333;
+        }
+
+        .piece-palette {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .piece-row {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .piece {
+            display: grid;
+            gap: 1px;
+            background-color: #333;
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: opacity 0.3s, transform 0.2s;
+            touch-action: manipulation;
+        }
+
+        .piece:active {
+            transform: scale(0.95);
+        }
+
+        .piece.faded {
+            opacity: 0.4;
+        }
+
+        .piece.highlighted {
+            box-shadow: 0 0 15px #4CAF50;
+            opacity: 1;
+            transform: scale(1.05);
+        }
+
+        .piece-cell {
+            width: 18px;
+            height: 18px;
+            background-color: #4CAF50;
+        }
+
+        .piece-cell.empty {
+            background-color: transparent;
+        }
+
+        .dragging-piece {
+            position: absolute;
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0.8;
+            cursor: grabbing;
+        }
+
+        .dragging-piece .piece-cell {
+            width: 60px;
+            height: 60px;
+            background-color: rgba(76, 175, 80, 0.7);
+            border: 2px solid #4CAF50;
+        }
+
+        .grid-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            display: grid;
+            grid-template-columns: repeat(4, 60px);
+            grid-template-rows: repeat(4, 60px);
+            gap: 2px;
+            pointer-events: none;
+        }
+
+        .overlay-cell {
+            width: 60px;
+            height: 60px;
+            background-color: rgba(76, 175, 80, 0.3);
+            border: 2px solid #4CAF50;
+            display: none;
+        }
+
+        .status {
+            margin: 10px 0;
+            padding: 13px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .reset-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+            touch-action: manipulation;
+        }
+
+        .reset-button:active {
+            background-color: #45a049;
+        }
+		
+		.rotate-button {
+            background-color: #2b7cd3;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+            touch-action: manipulation;
+        }
+
+        .rotate-button:active {
+            background-color: #185abd;
+        }
+
+        /* Mobile-specific adjustments */
+        @media (max-width: 400px) {
+            .grid {
+                grid-template-columns: repeat(4, 50px);
+                grid-template-rows: repeat(4, 50px);
+            }
+            .cell { width: 50px; height: 50px; }
+            .cell.target::after { font-size: 40px; }
+            .grid-overlay {
+                grid-template-columns: repeat(4, 50px);
+                grid-template-rows: repeat(4, 50px);
+            }
+            .overlay-cell { width: 50px; height: 50px; }
+            .dragging-piece .piece-cell { width: 50px; height: 50px; }
+            
+            .piece-row {
+                gap: 10px;
+            }
+            
+            .piece-cell { width: 16px; height: 16px; }
+            h1 { font-size: 1.3em; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Trò chơi xếp khối</h1>
+    
+    <div class="game-container">
+        <div class="grid-container">
+            <div class="status" id="status">Xếp các khối vào bảng sao cho các ô được đánh dấu đều có màu xám, các ô không đánh dấu đều có màu trắng.</div>
+            <div class="grid" id="grid">
+                <div class="grid-overlay" id="gridOverlay"></div>
+            </div>
+        </div>
+
+        <div class="pieces-container">
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button class="reset-button" onclick="retryGame()">Chơi lại</button>
+                <button class="rotate-button" onclick="rotatePalettePieces()">Xoay khối</button>
+                <button class="reset-button" onclick="resetGame()">Màn mới</button>
+            </div>
+            <div class="piece-palette" id="piecePalette"></div>
+        </div>
+    </div>
+
+    <script>
+        class TetrominoPuzzle {
+            constructor() {
+                this.gridSize = 4;
+                this.grid = Array(this.gridSize).fill().map(() => Array(this.gridSize).fill(0));
+                this.pieces = this.generateTetrominoes();
+                this.targetPattern = this.generateTargetPattern();
+                this.placedPieces = [];
+                this.selectedPiece = null;
+                this.draggedPiece = null;
+                this.dragOffset = { x: 0, y: 0 };
+                
+                this.initializeGrid();
+                this.initializePieces();
+                this.updateDisplay();
+                this.setupEventListeners();
+            }
+
+            rotate(matrix) {
+                const rows = matrix.length;
+                const cols = matrix[0].length;
+                const result = Array(cols).fill(0).map(() => Array(rows).fill(0));
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        result[c][rows - 1 - r] = matrix[r][c];
+                    }
+                }
+                return result;
+            }
+
+            generateTargetPattern() {
+                const allPieces = this.generateTetrominoes();
+                const rotatedPieces = [];
+                allPieces.forEach(p => {
+                    let currentShape = p.shape;
+                    const uniqueRotations = [];
+                    for (let i = 0; i < 4; i++) {
+                        const isUnique = !uniqueRotations.some(r => JSON.stringify(r) === JSON.stringify(currentShape));
+                        if (isUnique) {
+                            uniqueRotations.push(currentShape);
+                        }
+                        currentShape = this.rotate(currentShape);
+                    }
+                    rotatedPieces.push({ ...p, rotations: uniqueRotations });
+                });
+
+                let solutionPlacements;
+                
+                while (true) {
+                    const placements = [];
+                    const pieceOrder = allPieces.sort(() => Math.random() - 0.5);
+
+                    for (const piece of pieceOrder) {
+                        const pieceWithRotations = rotatedPieces.find(p => p.id === piece.id);
+                        const possiblePlacements = [];
+                        pieceWithRotations.rotations.forEach(shape => {
+                            for (let r = 0; r <= this.gridSize - shape.length; r++) {
+                                for (let c = 0; c <= this.gridSize - (shape[0] ? shape[0].length : 0); c++) {
+                                    possiblePlacements.push({ name: piece.name, shape, row: r, col: c });
+                                }
+                            }
+                        });
+                        placements.push(possiblePlacements[Math.floor(Math.random() * possiblePlacements.length)]);
+                    }
+                    
+                    solutionPlacements = placements;
+                    const solutionGrid = Array(this.gridSize).fill().map(() => Array(this.gridSize).fill(0));
+                    solutionPlacements.forEach(placement => {
+                        const { shape, row, col } = placement;
+                        for (let r = 0; r < shape.length; r++) {
+                            for (let c = 0; c < shape[r].length; c++) {
+                                if (shape[r][c]) {
+                                    solutionGrid[row + r][col + c]++;
+                                }
+                            }
+                        }
+                    });
+
+                    const pattern = Array(this.gridSize).fill().map(() => Array(this.gridSize).fill(false));
+                    let targetCount = 0;
+                    for (let row = 0; row < this.gridSize; row++) {
+                        for (let col = 0; col < this.gridSize; col++) {
+                            if (solutionGrid[row][col] % 2 === 1) {
+                                pattern[row][col] = true;
+                                targetCount++;
+                            }
+                        }
+                    }
+                    
+                    if (targetCount > 0 && targetCount < this.gridSize * this.gridSize) {
+                        console.clear();
+                        console.log("PUZZLE SOLUTION:");
+                        console.table(solutionPlacements);
+                        return pattern;
+                    }
+                }
+            }
+            
+            rotatePalettePieces() {
+                const placedPieceIds = new Set(this.placedPieces.map(p => p.id));
+                const currentlySelected = this.selectedPiece;
+
+                this.pieces.forEach(piece => {
+                    if (!placedPieceIds.has(piece.id)) {
+                        piece.shape = this.rotate(piece.shape);
+                    }
+                });
+
+                this.initializePieces();
+
+                if (currentlySelected && !placedPieceIds.has(currentlySelected)) {
+                    const pieceElement = document.querySelector(`.piece[data-piece-id='${currentlySelected}']`);
+                    if (pieceElement) {
+                        this.highlightPalettePiece(pieceElement);
+                    }
+                }
+            }
+
+            generateTetrominoes() {
+                return [
+                    { id: 1, name: 'I', shape: [[1, 1, 1, 1]], color: '#00FFFF' },
+                    { id: 2, name: 'O', shape: [[1, 1], [1, 1]], color: '#FFFF00' },
+                    { id: 3, name: 'T', shape: [[0, 1, 0], [1, 1, 1]], color: '#800080' },
+                    { id: 4, name: 'S', shape: [[0, 1, 1], [1, 1, 0]], color: '#00FF00' },
+                    { id: 5, name: 'Z', shape: [[1, 1, 0], [0, 1, 1]], color: '#FF0000' },
+                    { id: 6, name: 'J', shape: [[1, 0, 0], [1, 1, 1]], color: '#0000FF' },
+                    { id: 7, name: 'L', shape: [[0, 0, 1], [1, 1, 1]], color: '#FFA500' }
+                ];
+            }
+
+            initializeGrid() {
+                const gridElement = document.getElementById('grid');
+                while (gridElement.firstChild) {
+                    gridElement.removeChild(gridElement.firstChild);
+                }
+                for (let row = 0; row < this.gridSize; row++) {
+                    for (let col = 0; col < this.gridSize; col++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.dataset.row = row;
+                        cell.dataset.col = col;
+                        if (this.targetPattern[row][col]) {
+                            cell.classList.add('target');
+                        }
+                        gridElement.appendChild(cell);
+                    }
+                }
+                const newOverlay = document.createElement('div');
+                newOverlay.className = 'grid-overlay';
+                newOverlay.id = 'gridOverlay';
+                for (let row = 0; row < this.gridSize; row++) {
+                    for (let col = 0; col < this.gridSize; col++) {
+                        const overlayCell = document.createElement('div');
+                        overlayCell.className = 'overlay-cell';
+                        overlayCell.dataset.row = row;
+                        overlayCell.dataset.col = col;
+                        newOverlay.appendChild(overlayCell);
+                    }
+                }
+                gridElement.appendChild(newOverlay);
+            }
+
+            initializePieces() {
+                const paletteElement = document.getElementById('piecePalette');
+                paletteElement.innerHTML = ''; // Clear existing content
+
+                const row1 = document.createElement('div');
+                row1.className = 'piece-row';
+                const row2 = document.createElement('div');
+                row2.className = 'piece-row';
+
+                // Row 1: I, O, T
+                const pieceOrderRow1 = [1, 2, 3];
+                // Row 2: S, Z, L, J
+                const pieceOrderRow2 = [4, 5, 7, 6];
+
+                const createAndAppend = (id, container) => {
+                    const piece = this.pieces.find(p => p.id === id);
+                    if (piece) {
+                        const pieceElement = this.createPieceElement(piece);
+                        if (this.placedPieces.some(p => p.id === piece.id)) {
+                            pieceElement.classList.add('faded');
+                        }
+                        container.appendChild(pieceElement);
+                    }
+                };
+
+                pieceOrderRow1.forEach(id => createAndAppend(id, row1));
+                pieceOrderRow2.forEach(id => createAndAppend(id, row2));
+
+                paletteElement.appendChild(row1);
+                paletteElement.appendChild(row2);
+            }
+
+            createPieceElement(piece) {
+                const pieceElement = document.createElement('div');
+                pieceElement.className = 'piece';
+                pieceElement.dataset.pieceId = piece.id;
+                
+                const maxRow = piece.shape.length;
+                const maxCol = Math.max(0, ...piece.shape.map(row => row.length));
+                
+                pieceElement.style.gridTemplateColumns = `repeat(${maxCol}, 18px)`;
+                pieceElement.style.gridTemplateRows = `repeat(${maxRow}, 18px)`;
+                
+                for (let row = 0; row < maxRow; row++) {
+                    for (let col = 0; col < maxCol; col++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'piece-cell';
+                        if (!piece.shape[row] || !piece.shape[row][col]) {
+                            cell.classList.add('empty');
+                        } else {
+                            cell.style.backgroundColor = piece.color;
+                        }
+                        pieceElement.appendChild(cell);
+                    }
+                }
+                return pieceElement;
+            }
+
+            setupEventListeners() {
+                document.getElementById('piecePalette').addEventListener('click', (e) => {
+                    const pieceElement = e.target.closest('.piece');
+                    if (!pieceElement) return;
+                    const pieceId = parseInt(pieceElement.dataset.pieceId);
+                    this.handlePieceClick(pieceId, pieceElement);
+                });
+
+                document.getElementById('grid').addEventListener('click', (e) => {
+                    if (this.selectedPiece && !this.draggedPiece) {
+                        this.placePiece(e);
+                    }
+                });
+
+                document.addEventListener('mousemove', (e) => { if (this.draggedPiece) this.handleDrag(e); });
+                document.addEventListener('mouseup', (e) => { if (this.draggedPiece) this.handleDrop(e); });
+                document.addEventListener('touchmove', (e) => {
+                    if (this.draggedPiece) {
+                        e.preventDefault();
+                        this.handleDrag(e.touches[0]);
+                    }
+                }, { passive: false });
+                document.addEventListener('touchend', (e) => {
+                    if (this.draggedPiece) {
+                        e.preventDefault();
+                        this.handleDrop(e.changedTouches[0]);
+                    }
+                });
+                document.addEventListener('mousedown', this.handleStartDrag.bind(this));
+                document.addEventListener('touchstart', this.handleStartDrag.bind(this), { passive: false });
+            }
+
+            handleStartDrag(e) {
+                const pieceElement = e.target.closest('.piece');
+                if (pieceElement && !pieceElement.classList.contains('faded')) {
+                    const pieceId = parseInt(pieceElement.dataset.pieceId);
+                    if (this.placedPieces.some(p => p.id === pieceId)) return;
+                    
+                    this.selectedPiece = pieceId;
+                    this.startDrag(e, pieceId);
+                    e.preventDefault();
+                }
+            }
+
+            handlePieceClick(pieceId, pieceElement) {
+                const isPlaced = this.placedPieces.some(p => p.id === pieceId);
+
+                if (isPlaced) {
+                    this.removePiece(pieceId);
+                    if (this.selectedPiece === pieceId) {
+                        this.selectedPiece = null;
+                    }
+                } else {
+                    if (this.selectedPiece === pieceId) {
+                        this.selectedPiece = null;
+                        pieceElement.classList.remove('highlighted');
+                    } else {
+                        this.selectedPiece = pieceId;
+                        this.highlightPalettePiece(pieceElement);
+                    }
+                }
+            }
+
+            highlightPalettePiece(pieceElement) {
+                document.querySelectorAll('.piece').forEach(p => p.classList.remove('highlighted'));
+                if(pieceElement) pieceElement.classList.add('highlighted');
+            }
+
+            startDrag(e, pieceId) {
+                const piece = this.pieces.find(p => p.id === pieceId);
+                if (!piece) return;
+
+                this.draggedPiece = { ...piece };
+                const dragElement = this.createDragElement(piece);
+                document.body.appendChild(dragElement);
+                
+                const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+                const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+
+                // Modified logic to center the cursor on the whole piece
+                const maxRow = piece.shape.length;
+                const maxCol = Math.max(0, ...piece.shape.map(row => row.length));
+                const cellSize = window.innerWidth <= 400 ? 50 : 60;
+                const gap = 2; // From CSS .dragging-piece .piece-cell gap
+
+                const piecePixelWidth = maxCol * cellSize + (maxCol > 1 ? (maxCol - 1) * gap : 0);
+                const piecePixelHeight = maxRow * cellSize + (maxRow > 1 ? (maxRow - 1) * gap : 0);
+                
+                this.dragOffset = { x: piecePixelWidth / 2, y: piecePixelHeight / 2 };
+                
+                this.updateDragPosition({ clientX, clientY });
+            }
+
+            createDragElement(piece) {
+                const dragElement = document.createElement('div');
+                dragElement.className = 'dragging-piece';
+                dragElement.id = 'draggingPiece';
+                const maxRow = piece.shape.length;
+                const maxCol = Math.max(0, ...piece.shape.map(row => row.length));
+                const cellSize = window.innerWidth <= 400 ? 50 : 60;
+                
+                dragElement.style.display = 'grid';
+                dragElement.style.gridTemplateColumns = `repeat(${maxCol}, ${cellSize}px)`;
+                dragElement.style.gridTemplateRows = `repeat(${maxRow}, ${cellSize}px)`;
+                dragElement.style.gap = '2px';
+                
+                for (let row = 0; row < maxRow; row++) {
+                    for (let col = 0; col < maxCol; col++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'piece-cell';
+                        if (!piece.shape[row] || !piece.shape[row][col]) {
+                            cell.style.opacity = '0';
+                        }
+                        dragElement.appendChild(cell);
+                    }
+                }
+                return dragElement;
+            }
+
+            handleDrag(e) {
+                const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+                const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+                this.updateDragPosition({ clientX, clientY });
+            }
+
+            updateDragPosition(e) {
+                const dragElement = document.getElementById('draggingPiece');
+                if (dragElement) {
+                    dragElement.style.left = (e.clientX - this.dragOffset.x) + 'px';
+                    dragElement.style.top = (e.clientY - this.dragOffset.y) + 'px';
+                }
+            }
+            
+            isValidPlacement(piece, startRow, startCol) {
+                for (let r = 0; r < piece.shape.length; r++) {
+                    for (let c = 0; c < piece.shape[r].length; c++) {
+                        if (piece.shape[r][c]) {
+                            const gridRow = startRow + r;
+                            const gridCol = startCol + c;
+                            if (gridRow < 0 || gridRow >= this.gridSize || gridCol < 0 || gridCol >= this.gridSize) {
+                                return false;
+                            }
+                        }
+                    }
+                }
+                return true;
+            }
+
+            placePiece(e) {
+                const gridRect = document.getElementById('grid').getBoundingClientRect();
+                const cellSizeWithGap = window.innerWidth <= 400 ? 52 : 62;
+                const gridPadding = 10;
+                
+                const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+                const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+                
+                // Adjust for piece shape to get top-left corner
+                const piece = this.pieces.find(p => p.id === this.selectedPiece);
+                if (!piece) return;
+                
+                const col = Math.floor((clientX - gridRect.left - gridPadding) / cellSizeWithGap);
+                const row = Math.floor((clientY - gridRect.top - gridPadding) / cellSizeWithGap);
+                
+                this.placePieceAtPosition(row, col);
+            }
+
+            handleDrop(e) {
+                if (!this.draggedPiece) return;
+                
+                const dragElement = document.getElementById('draggingPiece');
+                const gridRect = document.getElementById('grid').getBoundingClientRect();
+                const clientX = e.clientX || (e.changedTouches && e.changedTouches[0].clientX);
+                const clientY = e.clientY || (e.changedTouches && e.changedTouches[0].clientY);
+
+                if (clientX >= gridRect.left && clientX <= gridRect.right &&
+                    clientY >= gridRect.top && clientY <= gridRect.bottom) {
+                    
+                    const cellSizeWithGap = window.innerWidth <= 400 ? 52 : 62;
+                    const gridPadding = 10;
+                    
+                    // Adjust drop position based on new centered cursor offset
+                    const col = Math.floor((clientX - gridRect.left - gridPadding - this.dragOffset.x + (cellSizeWithGap/2)) / cellSizeWithGap);
+                    const row = Math.floor((clientY - gridRect.top - gridPadding - this.dragOffset.y + (cellSizeWithGap/2)) / cellSizeWithGap);
+                    
+                    this.placePieceAtPosition(row, col);
+                }
+                
+                if (dragElement) dragElement.remove();
+                this.draggedPiece = null;
+            }
+
+            placePieceAtPosition(row, col) {
+                if (!this.selectedPiece) return;
+                const piece = this.pieces.find(p => p.id === this.selectedPiece);
+                if (!piece || !this.isValidPlacement(piece, row, col)) return;
+                
+                this.removePiece(this.selectedPiece);
+                this.placedPieces.push({ id: piece.id, shape: piece.shape, row, col });
+                
+                this.updateGridState();
+                this.updateDisplay();
+                this.checkWinCondition();
+                
+                const pieceElement = document.querySelector(`[data-piece-id="${piece.id}"]`);
+                pieceElement.classList.add('faded');
+                pieceElement.classList.remove('highlighted');
+                
+                this.selectedPiece = null;
+            }
+
+            removePiece(pieceId) {
+                const index = this.placedPieces.findIndex(p => p.id === pieceId);
+                if (index === -1) return;
+
+                this.placedPieces.splice(index, 1);
+                
+                const pieceElement = document.querySelector(`[data-piece-id="${pieceId}"]`);
+                if (pieceElement) {
+                   pieceElement.classList.remove('faded', 'highlighted');
+                }
+                
+                this.updateGridState();
+                this.updateDisplay();
+                this.checkWinCondition();
+            }
+
+            updateGridState() {
+                this.grid = Array(this.gridSize).fill().map(() => Array(this.gridSize).fill(0));
+                this.placedPieces.forEach(piece => {
+                    for (let r = 0; r < piece.shape.length; r++) {
+                        for (let c = 0; c < piece.shape[r].length; c++) {
+                            if (piece.shape[r][c]) {
+                                const gridRow = piece.row + r;
+                                const gridCol = piece.col + c;
+                                if (gridRow >= 0 && gridRow < this.gridSize && gridCol >= 0 && gridCol < this.gridSize) {
+                                    this.grid[gridRow][gridCol]++;
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            updateDisplay() {
+                for (let row = 0; row < this.gridSize; row++) {
+                    for (let col = 0; col < this.gridSize; col++) {
+                        const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+                        if (cell) {
+                            cell.classList.toggle('black', this.grid[row][col] % 2 === 1);
+                        }
+                    }
+                }
+            }
+
+            checkWinCondition() {
+                const statusElement = document.getElementById('status');
+                let patternMatches = true;
+                for (let row = 0; row < this.gridSize; row++) {
+                    for (let col = 0; col < this.gridSize; col++) {
+                        const isBlack = this.grid[row][col] % 2 === 1;
+                        if (isBlack !== this.targetPattern[row][col]) {
+                            patternMatches = false;
+                            break;
+                        }
+                    }
+                    if (!patternMatches) break;
+                }
+
+                if (patternMatches) {
+                    if (this.placedPieces.length === this.pieces.length) {
+                        statusElement.textContent = '🎉 Chúc mừng bạn! Lời giải chính xác!';
+                        statusElement.style.backgroundColor = '#4CAF50';
+                        statusElement.style.color = 'white';
+                    } else {
+                        statusElement.textContent = 'Cần phải dùng hết tất cả các khối thì mới được tính là thắng.';
+                        statusElement.style.backgroundColor = '#ffc107';
+                        statusElement.style.color = 'black';
+                    }
+                } else {
+                    statusElement.textContent = 'Xếp các khối vào bảng sao cho các ô được đánh dấu đều có màu xám, các ô không đánh dấu đều có màu trắng.';
+                    statusElement.style.backgroundColor = 'white';
+                    statusElement.style.color = 'black';
+                }
+            }
+
+            reset() {
+                // 1. Reset game state data
+                this.grid = Array(this.gridSize).fill().map(() => Array(this.gridSize).fill(0));
+                this.pieces = this.generateTetrominoes();
+                this.placedPieces = [];
+                this.selectedPiece = null;
+                this.draggedPiece = null;
+
+                // 2. Generate the new puzzle pattern
+                this.targetPattern = this.generateTargetPattern();
+
+                // 3. Clean up UI from previous game
+                const dragElement = document.getElementById('draggingPiece');
+                if (dragElement) dragElement.remove();
+
+                // 4. Re-initialize the UI to reflect the new puzzle and reset state
+                this.initializeGrid();
+                this.initializePieces();
+                this.updateDisplay();
+                this.checkWinCondition();
+            }
+
+            retry() {
+                this.placedPieces = [];
+                this.selectedPiece = null;
+                this.draggedPiece = null;
+                
+                const dragElement = document.getElementById('draggingPiece');
+                if (dragElement) dragElement.remove();
+                
+                this.initializePieces();
+                this.updateGridState();
+                this.updateDisplay();
+                this.checkWinCondition();
+            }
+        }
+
+        let game;
+
+        function resetGame() { if (game) game.reset(); }
+        function retryGame() { if (game) game.retry(); }
+        function rotatePalettePieces() { if(game) game.rotatePalettePieces(); }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            game = new TetrominoPuzzle();
+        });
+    </script>
+</body>
+</html>
